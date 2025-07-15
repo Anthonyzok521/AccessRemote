@@ -20,8 +20,7 @@ o
 ## Requisitos
 
 - Cuenta en [TailScale](https://tailscale.com/)
-- Acceso a la API de TailScale (token de autenticación)
-- `adb` y `scrcpy` instalados en tu sistema
+- Programa de TailSacle instalado
 
 ## Funcionalidades
 
