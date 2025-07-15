@@ -14,8 +14,10 @@ root.iconbitmap("icon.ico")
 main_frame = ttk.Frame(root)
 main_frame.pack(padx=20, pady=(20,10), fill="x")
 
-# Ruta absoluta a adb.exe en la carpeta scrcpy
-ADB_PATH = os.path.join(os.path.dirname(__file__), 'scrcpy', 'adb.exe')
+# Ruta absoluta a adb.exe en la carpeta scrcpy, siempre junto al .exe o script
+import sys
+BASE_PATH = os.path.dirname(sys.executable if getattr(sys, 'frozen', False) else os.path.abspath(__file__))
+ADB_PATH = os.path.join(BASE_PATH, 'scrcpy', 'adb.exe')
 
 # Tabla con los datos
 columns = ("IP", "NAME", "OS", "STATUS")
