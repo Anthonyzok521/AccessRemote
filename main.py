@@ -4,7 +4,7 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.tableview import Tableview
 
 root = ttk.Window(themename="darkly", title="Access Remote", size=(570, 300))
-
+root.iconbitmap("icon.ico")
 # Frame horizontal para tabla y botón de tema
 main_frame = ttk.Frame(root)
 main_frame.pack(padx=20, pady=(20,10), fill="x")
