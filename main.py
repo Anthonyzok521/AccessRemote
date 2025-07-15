@@ -2,14 +2,20 @@ import tkinter as tk
 import ttkbootstrap as ttk
 from ttkbootstrap.constants import *
 from ttkbootstrap.tableview import Tableview
+from tkinter import messagebox
+import threading
+import threading
+import subprocess
+import os
 
-root = ttk.Window(themename="darkly", title="Access Remote", size=(570, 300))
+root = ttk.Window(themename="darkly", title="Access Remote", size=(580, 300))
 root.iconbitmap("icon.ico")
 # Frame horizontal para tabla y botón de tema
 main_frame = ttk.Frame(root)
 main_frame.pack(padx=20, pady=(20,10), fill="x")
 
-import subprocess
+# Ruta absoluta a adb.exe en la carpeta scrcpy
+ADB_PATH = os.path.join(os.path.dirname(__file__), 'scrcpy', 'adb.exe')
 
 # Tabla con los datos
 columns = ("IP", "NAME", "OS", "STATUS")
@@ -89,6 +95,28 @@ next_btn.config(command=lambda: [show_page(current_page[0]+1), current_page.__se
 fill_table()
 tree.pack(side="left", fill="x", expand=True)
 
+def auto_connect_adb():
+    # Mostrar alerta de conexión
+    loading = tk.Toplevel(root)
+    loading.title("Conectando")
+    loading.geometry("250x80")
+    loading.resizable(False, False)
+    ttk.Label(loading, text="Conectando a dispositivos Android...").pack(pady=20)
+    loading.grab_set()
+    loading.transient(root)
+    def do_connect():
+        for row in all_devices:
+            ip, name, osys, status = row
+            if status == "connected" and osys.lower() == "android":
+                try:
+                    subprocess.run([ADB_PATH, "connect", f"{ip}:5555"], capture_output=True, text=True, timeout=20)
+                except Exception:
+                    pass
+        loading.destroy()
+    threading.Thread(target=do_connect, daemon=True).start()
+
+root.after(100, auto_connect_adb)
+
 # Espaciador para empujar los botones al fondo
 spacer = ttk.Frame(root)
 spacer.pack(expand=True, fill="both")
@@ -112,9 +140,6 @@ def connect_adb():
 
 connect_btn = ttk.Button(button_frame, text="CONNECT ADB", bootstyle=SUCCESS, command=connect_adb)
 connect_btn.pack(side=LEFT, padx=10)
-
-from tkinter import messagebox
-import threading
 
 def ping_selected():
     selected = tree.selection()
@@ -163,7 +188,7 @@ def adb_shell_root():
         messagebox.showwarning("Selecciona un elemento", "Debes seleccionar un elemento de la tabla para abrir ADB SHELL ROOT.")
         return
     ip = tree.item(selected[0], "values")[0]
-    cmd = f'start cmd /K "adb -s {ip}:5555 root && adb -s {ip}:5555 shell"'
+    cmd = f'start cmd /K ""{ADB_PATH}" -s {ip}:5555 root && "{ADB_PATH}" -s {ip}:5555 shell"'
     try:
         subprocess.Popen(cmd, shell=True)
     except Exception as e:
@@ -197,15 +222,21 @@ def list_files():
 
     def do_list():
         try:
+            # Conectar primero a la IP seleccionada
+            connect_proc = subprocess.run([ADB_PATH, "connect", f"{ip}:5555"], capture_output=True, text=True, timeout=10)
+            if "unable" in connect_proc.stdout.lower() or "failed" in connect_proc.stdout.lower():
+                loading.destroy()
+                messagebox.showerror("Error de conexión", f"No se pudo conectar a {ip}:5555\n\n{connect_proc.stdout.strip()}\n{connect_proc.stderr.strip()}")
+                return
             # Validar existencia de la ruta
-            check_cmd = ["adb", "-s", f"{ip}:5555", "shell", f"[ -d '{ruta}' ] && echo OK || echo NO"]
+            check_cmd = [ADB_PATH, "-s", f"{ip}:5555", "shell", f"[ -d '{ruta}' ] && echo OK || echo NO"]
             check = subprocess.run(check_cmd, capture_output=True, text=True, timeout=10)
             if "OK" not in check.stdout:
                 loading.destroy()
                 messagebox.showerror("Ruta no encontrada", f"La ruta {ruta} no existe en el dispositivo.")
                 return
             # Listar archivos
-            list_cmd = ["adb", "-s", f"{ip}:5555", "shell", f"ls {ruta}"]
+            list_cmd = [ADB_PATH, "-s", f"{ip}:5555", "shell", f"ls {ruta}"]
             files_proc = subprocess.run(list_cmd, capture_output=True, text=True, timeout=10)
             files = files_proc.stdout.strip().split()
             files = [f for f in files if f.endswith('.json') or f.endswith('.txt')]
@@ -248,7 +279,7 @@ def show_files_window(ip, ruta, files):
         loading2.transient(win)
         def do_cat():
             try:
-                cat_cmd = ["adb", "-s", f"{ip}:5555", "shell", f"cat {ruta}{filename}"]
+                cat_cmd = [ADB_PATH, "-s", f"{ip}:5555", "shell", f"cat {ruta}{filename}"]
                 cat_proc = subprocess.run(cat_cmd, capture_output=True, text=True, timeout=15)
                 loading2.destroy()
                 show_file_content(filename, cat_proc.stdout)
