@@ -17,6 +17,11 @@ o
 ./use-venv
 ```
 
+Compilar a .exe
+```shell
+pyinstaller --name AccessRemote --onefile --noconsole --icon=icon.ico main.py
+```
+
 ## Requisitos
 
 - Cuenta en [TailScale](https://tailscale.com/)
