@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+  <title>AccessRemote</title>
+  <link rel="stylesheet" href="./node_modules/bootstrap/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="./node_modules/bootstrap-icons/font/bootstrap-icons.css">
+  <style>
+    body {
+      background-color: #212529;
+      color: #f8f9fa;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+    .table {
+      color: #f8f9fa;
+    }
+    .devices-table {
+      height: calc(100vh - 250px);
+      overflow-y: auto;
+    }
+    .selected-row td {
+      background-color: rgba(25, 135, 84, 0.849);
+    }
+    .device-row:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      cursor: pointer;
+    }
+    .modal-content {
+      background-color: #343a40;
+      color: #f8f9fa;
+    }
+    .loading-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    .loading-box {
+      background-color: #343a40;
+      padding: 20px;
+      border-radius: 5px;
+      text-align: center;
+    }
+    .spinner-border {
+      width: 3rem;
+      height: 3rem;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      margin-right: 5px;
+    }
+    .status-green {
+      background-color: #28a745;
+    }
+    .status-yellow {
+      background-color: #ffc107;
+    }
+    .status-red {
+      background-color: #dc3545;
+    }
+    .sortable {
+      cursor: pointer;
+    }
+    .sortable:after {
+      content: '\f15d';
+      font-family: 'bootstrap-icons';
+      font-size: 0.7em;
+      margin-left: 5px;
+      opacity: 0.5;
+    }
+    .sortable.asc:after {
+      content: '\f128';
+      opacity: 1;
+    }
+    .sortable.desc:after {
+      content: '\f12a';
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-4">
+    <h1 class="mb-4">
+      <i class="bi bi-hdd-network text-primary"></i> AccessRemote
+    </h1>
+
+    <div class="row mb-4">
+      <div class="col-12">
+        <input type="text" id="filterInput" class="form-control mb-3" placeholder="Filtrar dispositivos...">
+      </div>
+      <div class="col-12">
+        <div class="card bg-dark">
+          <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Dispositivos TailScale</h5>
+            <button id="refreshBtn" class="btn btn-warning btn-sm">
+              <i class="bi bi-arrow-clockwise"></i> Refrescar
+            </button>
+          </div>
+          <div class="card-body devices-table">
+            <table class="table table-dark table-hover table-striped">
+              <thead>
+                <tr>
+                  <th class="sortable" data-sort="ip">IP</th>
+                  <th class="sortable" data-sort="name">NOMBRE</th>
+                  <th class="sortable" data-sort="os">SISTEMA</th>
+                  <th class="sortable" data-sort="status">ESTADO</th>
+                </tr>
+              </thead>
+              <tbody id="deviceTableBody">
+                <!-- Devices will be populated here -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    <p id="device-selected"></p>
+    <div class="row mb-4">
+      <div class="col-12">
+        <div class="btn-group w-100">
+          <button id="connectBtn" class="btn btn-success" disabled>
+            <i class="bi bi-display"></i> CONNECT ADB REMOTE
+          </button>
+          <button id="adbShellBtn" class="btn btn-primary" disabled>
+            <i class="bi bi-terminal"></i> ADB SHELL ROOT
+          </button>
+          <button id="pingBtn" class="btn btn-info" disabled>
+            <i class="bi bi-wifi"></i> PING
+          </button>
+          <button id="listFilesBtn" class="btn btn-secondary" disabled>
+            <i class="bi bi-folder"></i> LISTAR ARCHIVOS
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Ping Result Modal -->
+  <div class="modal fade" id="pingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="pingModalTitle">Ping Result</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <pre id="pingOutput" class="text-light bg-dark p-3" style="white-space: pre-wrap;"></pre>
+          <div id="pingStatus" class="alert mt-3"></div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Files Modal -->
+  <div class="modal fade" id="filesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="filesModalTitle">Archivos</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <div class="list-group" id="filesList">
+            <!-- Files will be listed here -->
+          </div>
+          <div id="noFilesMessage" class="alert alert-info mt-3 d-none">
+            No se encontraron archivos .json o .txt en la ruta.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- File Content Modal -->
+  <div class="modal fade" id="fileContentModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="fileContentModalTitle">Contenido del Archivo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <pre id="fileContent" class="text-light bg-dark p-3" style="max-height: 500px; overflow-y: auto; white-space: pre-wrap;"></pre>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loadingOverlay" class="loading-overlay d-none">
+    <div class="loading-box">
+      <div class="spinner-border text-primary mb-3" role="status">
+        <span class="visually-hidden">Loading...</span>
+      </div>
+      <p id="loadingMessage">Cargando...</p>
+    </div>
+  </div>
+
+  <script src="./node_modules/@popperjs/core/dist/umd/popper.min.js"></script>
+  <script src="./node_modules/bootstrap/dist/js/bootstrap.min.js"></script>
+  <script src="./renderer.js"></script>
+</body>
+</html>
