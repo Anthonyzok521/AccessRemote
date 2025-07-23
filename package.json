@@ -18,7 +18,7 @@
     "adb",
     "scrcpy"
   ],
-  "author": "Anthonyzok521",
+  "author": "Advanced Community",
   "license": "MIT",
   "type": "commonjs",
   "dependencies": {
@@ -32,7 +32,7 @@
     "electron-builder": "^24.9.1"
   },
   "build": {
-    "appId": "com.anthonyzok521.accessremote",
+    "appId": "com.advancedcommunity.accessremote",
     "productName": "AccessRemote",
     "directories": {
       "output": "dist"
