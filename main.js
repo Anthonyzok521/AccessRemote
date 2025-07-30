@@ -11,12 +11,14 @@ function createWindow () {
       contextIsolation: true,
       enableRemoteModule: false,
       sandbox: false, // Permitir acceso a módulos nativos en preload
-      devTools: true
+      devTools: process.env.NODE_ENV === 'development' || process.argv.includes('--dev-tools')
     }
   });
   
-  // Siempre abrir las herramientas de desarrollo para debuggear
-  win.webContents.openDevTools();
+  // Solo abrir las herramientas de desarrollo en modo desarrollo
+  if (process.env.NODE_ENV === 'development' || process.argv.includes('--dev-tools')) {
+    win.webContents.openDevTools();
+  }
 
   win.loadFile('index.html');
 }

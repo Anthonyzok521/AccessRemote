@@ -1,15 +1,16 @@
 {
   "name": "accessremote-electron",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Aplicación para interactuar con dispositivos TailScale y controlar dispositivos Android remotamente",
   "main": "main.js",
   "scripts": {
-    "start": "electron .",
+    "start": "cross-env NODE_ENV=production electron .",
     "dev": "cross-env NODE_ENV=development electron .",
-    "build": "electron-builder",
-    "build:win": "electron-builder --win",
-    "build:mac": "electron-builder --mac",
-    "build:linux": "electron-builder --linux"
+    "dev:tools": "cross-env NODE_ENV=production electron . --dev-tools",
+    "build": "node build.js",
+    "build:win": "cross-env ELECTRON_BUILD_TARGET=win node build.js",
+    "build:mac": "cross-env ELECTRON_BUILD_TARGET=mac node build.js",
+    "build:linux": "cross-env ELECTRON_BUILD_TARGET=linux node build.js"
   },
   "keywords": [
     "tailscale",

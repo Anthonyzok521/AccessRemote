@@ -56,3 +56,5 @@ resources/scrcpy/*
 .npm
 .eslintcache
 .cache/
+.qodo
+resources

@@ -11,7 +11,8 @@ const getResourcePath = () => {
   if (isDev) {
     return path.join(__dirname, 'resources');
   } else {
-    return path.join(process.resourcesPath, 'resources');
+    // In production, resources are nested one level deeper
+    return path.join(process.resourcesPath, 'resources', 'scrcpy');
   }
 };
 
@@ -61,7 +62,7 @@ contextBridge.exposeInMainWorld('api', {
     });
   },
   
-  // Ping a device
+  // Ping a device (supports English and Spanish output)
   pingDevice: (ip) => {
     return new Promise((resolve, reject) => {
       const pingCmd = process.platform === 'win32' 
@@ -69,50 +70,66 @@ contextBridge.exposeInMainWorld('api', {
         : `ping -c 4 ${ip}`;
       
       exec(pingCmd, (error, stdout, stderr) => {
-        if (error) {
+        if (error && !stdout) {
           console.error(`Error: ${error.message}`);
           reject(error);
           return;
         }
         
         const output = stdout.trim();
-        const hasReply = output.includes('Reply from') || output.includes('0%') || output.includes('bytes from');
-        
-        // Look for lost packets info
+
+        // Detect reply lines in English and Spanish
+        const hasReply = (
+          output.includes('Reply from') || // English Windows
+          output.includes('Respuesta desde') || // Spanish Windows
+          output.includes('bytes from') || // Linux/Mac
+          output.match(/0%.*packet loss/) || // Linux/Mac English
+          output.match(/0%.*perdida/) // Linux/Mac Spanish
+        );
+
+        // Look for lost packets info (English and Spanish)
         let lost = null;
         const lostLine = output.split('\n').find(line => 
-          line.includes('Lost =') || line.includes('packet loss') || line.includes('100%'));
-        
+          line.includes('Lost =') || // English Windows
+          line.includes('Perdidos =') || // Spanish Windows
+          line.includes('packet loss') || // Linux/Mac English
+          line.includes('perdida') || // Linux/Mac Spanish
+          line.includes('100%') // fallback
+        );
+
         if (lostLine) {
-          // Extract the number of lost packets (platform specific)
           if (process.platform === 'win32') {
             try {
-              lost = parseInt(lostLine.split('Lost =')[1].split('(')[0].trim().replace(',', ''));
+              // English: Lost = X
+              // Spanish: Perdidos = X
+              let lostMatch = lostLine.match(/Lost = (\d+)/i) || lostLine.match(/Perdidos = (\d+)/i);
+              if (lostMatch) {
+                lost = parseInt(lostMatch[1]);
+              }
             } catch (e) { /* ignore */ }
           } else {
             try {
-              const match = lostLine.match(/(\d+)%\s+packet\s+loss/);
+              // English: X% packet loss
+              // Spanish: X% perdida
+              let match = lostLine.match(/(\d+)%\s+(packet loss|perdida)/i);
               lost = match ? parseInt(match[1]) : null;
-              // Convert percentage to a binary 0/1 for consistency with Windows
-              lost = lost === 0 ? 0 : 1; 
+              lost = lost === 0 ? 0 : 1;
             } catch (e) { /* ignore */ }
           }
         }
-        
+
         resolve({
           output,
-          hasInternet: hasReply && lost === 0,
+          hasInternet: !!hasReply && lost === 0,
           rawOutput: stdout
         });
       });
     });
   },
-  
   // Connect to Android device using ADB
   connectAdb: (ip) => {
     return new Promise((resolve, reject) => {
-      const adbPath = path.join(getResourcePath(), 'scrcpy', 'adb.exe');
-      
+      const adbPath = path.join(getResourcePath(), 'adb.exe');
       exec(`"${adbPath}" connect ${ip}:5555`, (error, stdout, stderr) => {
         if (error) {
           console.error(`Error: ${error.message}`);
@@ -128,10 +145,10 @@ contextBridge.exposeInMainWorld('api', {
   // Launch scrcpy for remote control
   launchScrcpy: (ip) => {
     return new Promise((resolve, reject) => {
-      const scrcpyDir = path.join(getResourcePath(), 'scrcpy');
+      const scrcpyDir = getResourcePath();
       const cmd = process.platform === 'win32'
-        ? `start cmd /K "cd "${scrcpyDir}" && scrcpy.exe --tcpip=${ip}:5555"`
-        : `xterm -e "cd "${scrcpyDir}" && ./scrcpy --tcpip=${ip}:5555"`;
+        ? `start cmd /K "cd "${scrcpyDir}\\scrcpy" && scrcpy.exe --tcpip=${ip}:5555"`
+        : `xterm -e "cd "${scrcpyDir}/scrcpy" && ./scrcpy --tcpip=${ip}:5555"`;
       
       exec(cmd, { shell: true }, (error, stdout, stderr) => {
         if (error) {
@@ -148,10 +165,10 @@ contextBridge.exposeInMainWorld('api', {
   // Open ADB shell with root
   openAdbShellRoot: (ip) => {
     return new Promise((resolve, reject) => {
-      const adbPath = path.join(getResourcePath(), 'scrcpy', 'adb.exe');
+      const adbPath = path.join(getResourcePath(), 'adb.exe');
       const cmd = process.platform === 'win32'
-        ? `start cmd /K ""${adbPath}" -s ${ip}:5555 root && "${adbPath}" -s ${ip}:5555 shell"`
-        : `xterm -e "${adbPath} -s ${ip}:5555 root && ${adbPath} -s ${ip}:5555 shell"`;
+        ? `start cmd /K ""${adbPath}\\scrcpy" -s ${ip}:5555 root && "${adbPath}" -s ${ip}:5555 shell"`
+        : `xterm -e "${adbPath}/scrcpy -s ${ip}:5555 root && ${adbPath} -s ${ip}:5555 shell"`;
       
       exec(cmd, { shell: true }, (error, stdout, stderr) => {
         if (error) {
@@ -166,9 +183,9 @@ contextBridge.exposeInMainWorld('api', {
   },
   
   // List files on Android device
-  listFiles: (ip, path = "/storage/emulated/0/Android/data/com.gaman.puntov_machine/files/") => {
+  listFiles: (ip, filePath = "/storage/emulated/0/Android/data/com.gaman.puntov_machine/files/") => {
     return new Promise((resolve, reject) => {
-      const adbPath = getResourcePath() + '/scrcpy/adb.exe';
+      const adbPath = path.join(getResourcePath(), 'scrcpy','adb.exe');
       
       // First connect to the device
       exec(`"${adbPath}" connect ${ip}:5555`, (error, stdout, stderr) => {
@@ -178,15 +195,15 @@ contextBridge.exposeInMainWorld('api', {
         }
         
         // Check if path exists
-        exec(`"${adbPath}" -s ${ip}:5555 shell "[ -d '${path}' ] && echo OK || echo NO"`, 
+        exec(`"${adbPath}" -s ${ip}:5555 shell "[ -d '${filePath}' ] && echo OK || echo NO"`, 
           (error, stdout, stderr) => {
             if (error || !stdout.includes('OK')) {
-              reject({ error: 'Path not found', message: `The path ${path} does not exist` });
+              reject({ error: 'Path not found', message: `The path ${filePath} does not exist` });
               return;
             }
             
             // List files
-            exec(`"${adbPath}" -s ${ip}:5555 shell "ls ${path}"`, 
+            exec(`"${adbPath}" -s ${ip}:5555 shell "ls ${filePath}"`, 
               (error, stdout, stderr) => {
                 if (error) {
                   reject({ error: 'Failed to list files', message: stderr });

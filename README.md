@@ -25,6 +25,9 @@ npm install
 
 # Ejecutar en modo desarrollo
 npm run dev
+
+# Ejecutar en modo producción
+npm run start
 ```
 
 ### Compilación

@@ -23,6 +23,12 @@
     .selected-row td {
       background-color: rgba(25, 135, 84, 0.849);
     }
+    .table-dark .selected-row:hover {
+      --bs-table-hover-bg: rgba(31, 177, 109, 0.849);
+    }
+    .table-striped>tbody>.selected-row:nth-of-type(odd)>* {
+      --bs-table-bg-type: rgba(25, 135, 84, 0.849);
+    }
     .device-row:hover {
       background-color: rgba(255, 255, 255, 0.1);
       cursor: pointer;
@@ -94,18 +100,19 @@
     <h1 class="mb-4">
       <i class="bi bi-hdd-network text-primary"></i> AccessRemote
     </h1>
-
-    <div class="row mb-4">
-      <div class="col-12">
-        <input type="text" id="filterInput" class="form-control mb-3" placeholder="Filtrar dispositivos...">
-      </div>
+    <div class="row mb-4">      
       <div class="col-12">
         <div class="card bg-dark">
           <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0">Dispositivos TailScale</h5>
+            <h5 class="mb-0 text-white">Dispositivos TailScale <span style="color: #343a40;">v2.0.0</span></h5>
+            <div class="d-flex justify-content-end align-items-center" style="width: 80%;">
+              <div class="d-flex" style="width: 50%; margin: 0 20px; align-items: center; justify-content: center;">
+              <input type="text" id="filterInput" class="form-control" placeholder="Filtrar dispositivos...">
+            </div>
             <button id="refreshBtn" class="btn btn-warning btn-sm">
               <i class="bi bi-arrow-clockwise"></i> Refrescar
             </button>
+            </div>
           </div>
           <div class="card-body devices-table">
             <table class="table table-dark table-hover table-striped">
@@ -125,7 +132,7 @@
         </div>
       </div>
     </div>
-    <p id="device-selected"></p>
+<!--     <p id="device-selected"></p> -->
     <div class="row mb-4">
       <div class="col-12">
         <div class="btn-group w-100">
@@ -140,6 +147,9 @@
           </button>
           <button id="listFilesBtn" class="btn btn-secondary" disabled>
             <i class="bi bi-folder"></i> LISTAR ARCHIVOS
+          </button>
+          <button id="openDashboardBtn" class="btn btn-dark">
+            <i class="bi bi-key"></i> ABRIR PANEL
           </button>
         </div>
       </div>

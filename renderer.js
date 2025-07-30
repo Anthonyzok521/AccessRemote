@@ -13,6 +13,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const pingModalElement = document.getElementById('pingModal');
     const filesModalElement = document.getElementById('filesModal');
     const fileContentModalElement = document.getElementById('fileContentModal');
+    const openDashboard = document.querySelector('#openDashboardBtn');
     
     // Inicialización diferida de modales
     let pingModal, filesModal, fileContentModal;
@@ -212,7 +213,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function selectDevice(device, row) {
-        document.querySelector('#device-selected').textContent = device.name;
         if (selectedDevice === device) {
             row.classList.remove('selected-row');
             selectedDevice = null;
@@ -381,4 +381,8 @@ document.addEventListener('DOMContentLoaded', () => {
             loadingOverlay.classList.add('d-none');
         }
     }
+
+    openDashboard.addEventListener('click', () => {
+        window.open("https://login.tailscale.com/admin/machines", "_blank");
+    });
 });
