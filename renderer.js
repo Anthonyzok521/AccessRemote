@@ -16,8 +16,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const openDashboard = document.querySelector('#openDashboardBtn');
     
     // Inicialización diferida de modales
-    let pingModal, filesModal, fileContentModal;
-    
+    let pingModal, filesModal, fileContentModal, DStatus = [];
+
+    // Notificaciones periódicas por status de dispositivos
+    if (Notification.permission !== 'granted') {
+        Notification.requestPermission();
+    }
+    // Configurar notificaciones periódicas
+    setInterval(() => {
+        loadDevices();
+        const NOTIFICATION_TITLE = 'Status de Dispositivos Tailscale';
+        DStatus.map(device => {
+            const notification = new Notification(NOTIFICATION_TITLE, {
+                body: device,
+            });
+            notification.onclick = () => {
+                window.focus();
+            };
+        });
+    }, 300000); // Intervalo de 30 minutos
+
     // Verificar que bootstrap esté disponible
     if (typeof bootstrap !== 'undefined') {
         console.log('Bootstrap está disponible, inicializando modales');
@@ -98,12 +116,21 @@ document.addEventListener('DOMContentLoaded', () => {
             });
     }
 
+    function listDevicesWithStatus(devices) {
+        DStatus = devices.forEach(device => {
+            const status = deviceConnectionStatus[device.ip] || 'unknown';
+            return `Dispositivo: ${device.name}, IP: ${device.ip}, Estado: ${status}`;
+        });
+    }
+
     function displayDevices(devices) {
         // Filtrar dispositivos si hay texto en el filtro
         let filteredDevices = filterDevicesByText(devices);
         
         // Ordenar dispositivos
         filteredDevices = sortDevices(filteredDevices);
+
+        listDevicesWithStatus(filteredDevices);
         
         // Limpiar tabla y mostrar dispositivos
         deviceTableBody.innerHTML = '';
@@ -243,9 +270,6 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleLoading(true, 'Conectando ADB...');
         // Primero conectar ADB y luego lanzar scrcpy
         window.api.launchScrcpy(selectedDevice.ip)
-            .then(() => {
-                return window.api.launchScrcpy(selectedDevice.ip);
-            })
             .then(() => {
                 toggleLoading(false);
             })

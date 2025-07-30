@@ -8,6 +8,8 @@ Una aplicación para interactuar con la API de TailScale y controlar dispositivo
 - Hacer ping a los dispositivos para comprobar su disponibilidad
 - Conectarse de forma remota a dispositivos Android utilizando `scrcpy` y `adb`
 - Visualizar archivos de dispositivos Android
+- Funcionalidad de bandeja del sistema (System Tray) - la aplicación se mantiene en segundo plano al cerrar la ventana
+- Menú contextual en la bandeja del sistema para abrir o cerrar completamente la aplicación
 
 ## Requisitos
 
@@ -93,6 +95,22 @@ Asegúrate de que los dispositivos Android tengan:
 - Modo de desarrollador activado
 - Depuración USB habilitada
 - Depuración inalámbrica habilitada (Android 11+) o ADB por TCP en puerto 5555
+
+### Ícono de la aplicación
+La aplicación usa los siguientes íconos:
+- `assets/icon.ico`: Para la ventana principal (formato Windows nativo)
+- `assets/icon.png`: Para la bandeja del sistema (mejor compatibilidad)
+
+Ambos archivos deben representar el mismo ícono en diferentes formatos.
+
+## Uso de la bandeja del sistema
+
+Cuando ejecutes la aplicación:
+- Al hacer clic en el botón "cerrar" de la ventana, la aplicación se ocultará y permanecerá en la bandeja del sistema
+- Puedes hacer clic izquierdo en el ícono de la bandeja para mostrar la ventana nuevamente
+- Haz clic derecho en el ícono de la bandeja para ver el menú contextual con opciones para:
+  - **Abrir**: Mostrar la ventana de la aplicación
+  - **Cerrar**: Cerrar completamente la aplicación
 
 
 ## Licencia
