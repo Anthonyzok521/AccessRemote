@@ -13,7 +13,7 @@ Una aplicación para interactuar con la API de TailScale y controlar dispositivo
 
 - [Cuenta de TailScale](https://tailscale.com/)
 - Cliente de TailScale instalado en tu sistema
-- Los binarios de `scrcpy` y `adb` deben estar en la carpeta `resources/scrcpy/` para poder usar la funcionalidad de control remoto
+- `scrcpy` y `adb` deben estar instalados y agregados como variables de entorno en el sistema.
 
 ## Desarrollo
 
@@ -49,15 +49,51 @@ Antes de ejecutar o compilar la aplicación, asegúrate de:
 
 1. Tener instalado [Node.js](https://nodejs.org/) (versión 14 o superior)
 2. Tener instalado [TailScale](https://tailscale.com/download)
-3. Colocar los binarios de `adb` y `scrcpy` en la carpeta `resources/scrcpy/`
+3. Instalar y configurar `scrcpy` y `adb` como variables de entorno:
 
-## Configuración de ADB y scrcpy
+### Instalación de ADB y scrcpy
 
-Para que la aplicación funcione correctamente:
+#### En Windows:
+1. Descarga [Platform Tools](https://developer.android.com/studio/releases/platform-tools) (contiene adb)
+2. Descarga [scrcpy](https://github.com/Genymobile/scrcpy/releases) para Windows
+3. Extrae ambos archivos en carpetas separadas (ej: `C:\adb` y `C:\scrcpy`)
+4. Agrega ambas rutas al PATH del sistema:
+   - Presiona `Win + R`, escribe `sysdm.cpl` y presiona Enter
+   - Ve a la pestaña "Avanzado" → "Variables de entorno"
+   - Edita la variable "Path" del sistema y agrega las rutas de adb y scrcpy
 
-1. Descarga [scrcpy](https://github.com/Genymobile/scrcpy/releases) para tu sistema operativo
-2. Coloca los archivos `adb.exe`, `scrcpy.exe` y las DLLs relacionadas en la carpeta `resources/scrcpy/`
-3. Asegúrate de que los dispositivos Android tengan activado el modo depuración y permitido el acceso ADB por red (puerto 5555)
+#### En macOS:
+```bash
+# Usando Homebrew
+brew install android-platform-tools
+brew install scrcpy
+```
+
+#### En Linux:
+```bash
+# Ubuntu/Debian
+sudo apt install adb scrcpy
+
+# Arch Linux
+sudo pacman -S android-tools scrcpy
+
+# Fedora
+sudo dnf install android-tools scrcpy
+```
+
+### Verificación de instalación
+Puedes verificar que todo esté correctamente instalado ejecutando:
+```bash
+adb version
+scrcpy --version
+```
+
+### Configuración de dispositivos Android
+Asegúrate de que los dispositivos Android tengan:
+- Modo de desarrollador activado
+- Depuración USB habilitada
+- Depuración inalámbrica habilitada (Android 11+) o ADB por TCP en puerto 5555
+
 
 ## Licencia
 

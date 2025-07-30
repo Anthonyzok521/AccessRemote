@@ -6,15 +6,6 @@ const os = require('os');
 const fs = require('fs');
 
 // Determine base path for executables
-const isDev = process.env.NODE_ENV !== 'production';
-const getResourcePath = () => {
-  if (isDev) {
-    return path.join(__dirname, 'resources');
-  } else {
-    // In production, resources are nested one level deeper
-    return path.join(process.resourcesPath, 'resources', 'scrcpy');
-  }
-};
 
 // Expose protected methods that allow the renderer process to use
 // the ipcRenderer without exposing the entire object
@@ -129,8 +120,7 @@ contextBridge.exposeInMainWorld('api', {
   // Connect to Android device using ADB
   connectAdb: (ip) => {
     return new Promise((resolve, reject) => {
-      const adbPath = path.join(getResourcePath(), 'adb.exe');
-      exec(`"${adbPath}" connect ${ip}:5555`, (error, stdout, stderr) => {
+      exec(`adb connect ${ip}:5555`, (error, stdout, stderr) => {
         if (error) {
           console.error(`Error: ${error.message}`);
           reject(error);
@@ -145,10 +135,9 @@ contextBridge.exposeInMainWorld('api', {
   // Launch scrcpy for remote control
   launchScrcpy: (ip) => {
     return new Promise((resolve, reject) => {
-      const scrcpyDir = getResourcePath();
       const cmd = process.platform === 'win32'
-        ? `start cmd /K "cd "${scrcpyDir}\\scrcpy" && scrcpy.exe --tcpip=${ip}:5555"`
-        : `xterm -e "cd "${scrcpyDir}/scrcpy" && ./scrcpy --tcpip=${ip}:5555"`;
+        ? `start cmd /K "scrcpy.exe --tcpip=${ip}:5555"`
+        : `xterm -e "scrcpy --tcpip=${ip}:5555"`;
       
       exec(cmd, { shell: true }, (error, stdout, stderr) => {
         if (error) {
@@ -165,10 +154,9 @@ contextBridge.exposeInMainWorld('api', {
   // Open ADB shell with root
   openAdbShellRoot: (ip) => {
     return new Promise((resolve, reject) => {
-      const adbPath = path.join(getResourcePath(), 'adb.exe');
       const cmd = process.platform === 'win32'
-        ? `start cmd /K ""${adbPath}\\scrcpy" -s ${ip}:5555 root && "${adbPath}" -s ${ip}:5555 shell"`
-        : `xterm -e "${adbPath}/scrcpy -s ${ip}:5555 root && ${adbPath} -s ${ip}:5555 shell"`;
+        ? `start cmd /K "adb -s ${ip}:5555 root && adb -s ${ip}:5555 shell"`
+        : `xterm -e "adb -s ${ip}:5555 root && adb -s ${ip}:5555 shell"`;
       
       exec(cmd, { shell: true }, (error, stdout, stderr) => {
         if (error) {
@@ -185,17 +173,15 @@ contextBridge.exposeInMainWorld('api', {
   // List files on Android device
   listFiles: (ip, filePath = "/storage/emulated/0/Android/data/com.gaman.puntov_machine/files/") => {
     return new Promise((resolve, reject) => {
-      const adbPath = path.join(getResourcePath(), 'scrcpy','adb.exe');
-      
       // First connect to the device
-      exec(`"${adbPath}" connect ${ip}:5555`, (error, stdout, stderr) => {
+      exec(`adb connect ${ip}:5555`, (error, stdout, stderr) => {
         if (error || stdout.includes('unable') || stdout.includes('failed')) {
           reject({ error: 'Connection failed', message: stdout || stderr });
           return;
         }
         
         // Check if path exists
-        exec(`"${adbPath}" -s ${ip}:5555 shell "[ -d '${filePath}' ] && echo OK || echo NO"`, 
+        exec(`adb -s ${ip}:5555 shell "[ -d '${filePath}' ] && echo OK || echo NO"`, 
           (error, stdout, stderr) => {
             if (error || !stdout.includes('OK')) {
               reject({ error: 'Path not found', message: `The path ${filePath} does not exist` });
@@ -203,7 +189,7 @@ contextBridge.exposeInMainWorld('api', {
             }
             
             // List files
-            exec(`"${adbPath}" -s ${ip}:5555 shell "ls ${filePath}"`, 
+            exec(`adb -s ${ip}:5555 shell "ls ${filePath}"`, 
               (error, stdout, stderr) => {
                 if (error) {
                   reject({ error: 'Failed to list files', message: stderr });
@@ -223,9 +209,7 @@ contextBridge.exposeInMainWorld('api', {
   // Get file content from Android device
   getFileContent: (ip, filePath) => {
     return new Promise((resolve, reject) => {
-      const adbPath = path.join(getResourcePath(), 'scrcpy', 'adb.exe');
-      
-      exec(`"${adbPath}" -s ${ip}:5555 shell "cat ${filePath}"`, 
+      exec(`adb -s ${ip}:5555 shell "cat ${filePath}"`, 
         (error, stdout, stderr) => {
           if (error) {
             reject({ error: 'Failed to read file', message: stderr });
